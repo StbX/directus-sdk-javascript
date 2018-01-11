@@ -3,10 +3,11 @@ const qs = require('qs');
 
 class RemoteInstance {
   constructor(options) {
-    const {accessToken, url, headers} = options;
+    const {accessToken, url, headers, config} = options;
 
     this.accessToken = accessToken;
     this.headers = headers || {};
+    this.config = config || {};
 
     if (!url) {
       throw new Error('No Directus URL provided');
@@ -25,15 +26,29 @@ class RemoteInstance {
     return headers;
   }
 
+  _requestConfig(options = {}) {
+    const config = {};
+
+    for (var attr in this.config) {
+      config[attr] = this.config[attr];
+    }
+
+    for (var attr in options) {
+      config[attr] = options[attr];
+    }
+
+    return config;
+  }
+
   _get(endpoint, params = {}) {
-    const headers = this._requestHeaders;
+    const config = this._requestConfig({
+      params,
+      headers: this._requestHeaders,
+      paramsSerializer: params => qs.stringify(params, {arrayFormat: 'brackets'}),
+    });
 
     return new Promise((resolve, reject) => {
-      axios.get(this.url + endpoint, {
-        params,
-        headers,
-        paramsSerializer: params => qs.stringify(params, {arrayFormat: 'brackets'})
-      })
+        axios.get(this.url + endpoint, config)
         .then(res => resolve(res.data))
         .catch(err => {
           if (err.response && err.response.data) {
@@ -46,10 +61,12 @@ class RemoteInstance {
   }
 
   _post(endpoint, data = {}) {
-    const headers = this._requestHeaders;
+    const config = this._requestConfig({
+      headers: this._requestHeaders,
+    });
 
     return new Promise((resolve, reject) => {
-      axios.post(this.url + endpoint, data, {headers})
+      axios.post(this.url + endpoint, data, config)
         .then(res => resolve(res.data))
         .catch(err => {
           if (err.response && err.response.data) {
@@ -62,10 +79,12 @@ class RemoteInstance {
   }
 
   _put(endpoint, data = {}) {
-    const headers = this._requestHeaders;
+    const config = this._requestConfig({
+      headers: this._requestHeaders,
+    });
 
     return new Promise((resolve, reject) => {
-      axios.put(this.url + endpoint, data, {headers})
+      axios.put(this.url + endpoint, data, config)
         .then(res => resolve(res.data))
         .catch(err => {
           if (err.response && err.response.data) {
@@ -78,10 +97,12 @@ class RemoteInstance {
   }
 
   _delete(endpoint) {
-    const headers = this._requestHeaders;
+    const config = this._requestConfig({
+      headers: this._requestHeaders,
+    });
 
     return new Promise((resolve, reject) => {
-      axios.delete(this.url + endpoint, {headers})
+      axios.delete(this.url + endpoint, config)
         .then(res => resolve(res.data))
         .catch(err => {
           if (err.response && err.response.data) {
